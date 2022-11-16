@@ -17,12 +17,28 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
-client.connect(err => {
-  const collection = client.db("test").collection("devices");
-  // perform actions on the collection object
-  //   client.close();
-  console.log("***** database successfully connected *****");
-});
+
+// mongodb function
+async function run() {
+  try {
+    const appointmentOptionsCollections = client
+      .db("doctorsPortal")
+      .collection("appointmentOptions");
+
+    // get available appointments
+    app.get("/appointmentOptions", async (req, res) => {
+      const query = {};
+
+      const cursor = appointmentOptionsCollections.find(query);
+      const options = await cursor.toArray();
+
+      res.send(options);
+    });
+  } finally {
+  }
+}
+
+run().catch(error => console.log(error));
 
 //home route
 app.get("/", (req, res) => {
