@@ -4,7 +4,7 @@ const app = express();
 require("dotenv").config();
 const port = process.env.PORT || 5000;
 
-//middlerware
+//middleware
 app.use(cors());
 app.use(express.json());
 
@@ -24,6 +24,9 @@ async function run() {
     const appointmentOptionsCollections = client
       .db("doctorsPortal")
       .collection("appointmentOptions");
+    const bookingsCollections = client
+      .db("doctorsPortal")
+      .collection("bookings");
 
     // get available appointments
     app.get("/appointmentOptions", async (req, res) => {
@@ -33,6 +36,24 @@ async function run() {
       const options = await cursor.toArray();
 
       res.send(options);
+    });
+
+    /*
+                  ***bookings***
+     app.get('/bookings')  --> get all bookings
+     app.get('/bookings/:id') --> get a booking by id
+     app.post('/bookings') --> create a new booking
+     app.patch('bookings/:id') --> update a booking by id
+     app.delete('bookings/:id') --> delete a booking by id
+     */
+
+    // create a new booking
+    app.post("/bookings", async (req, res) => {
+      const booking = req.body;
+
+      const result = await bookingsCollections.insertOne(booking);
+
+      res.send(result);
     });
   } finally {
   }
