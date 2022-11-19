@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const app = express();
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const port = process.env.PORT || 5000;
 
@@ -10,6 +11,7 @@ app.use(express.json());
 
 // mongodb config
 const { MongoClient, ServerApiVersion } = require("mongodb");
+const { query } = require("express");
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.jjvalws.mongodb.net/?retryWrites=true&w=majority`;
 
 const client = new MongoClient(uri, {
@@ -17,6 +19,28 @@ const client = new MongoClient(uri, {
   useUnifiedTopology: true,
   serverApi: ServerApiVersion.v1,
 });
+
+function verifyJWT(req, res, next) {
+  // get authorization from header
+  const authHeader = req.headers.authorization;
+
+  // check if the header exists
+  if (!authHeader) {
+    return res.status(401).send("unauthorized access");
+  }
+
+  // split the token
+  const token = authHeader.split(" ")[1];
+
+  jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: "forbidden access" });
+    }
+
+    req.decoded = decoded;
+    next();
+  });
+}
 
 // mongodb function
 async function run() {
@@ -96,8 +120,14 @@ async function run() {
     });
 
     // get booking by email
-    app.get("/bookings", async (req, res) => {
+    app.get("/bookings", verifyJWT, async (req, res) => {
       const email = req.query.email;
+
+      const decodedEmail = req.decoded.email;
+
+      if (email !== decodedEmail) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
 
       const query = { email: email };
       const bookings = await bookingsCollections.find(query).toArray();
@@ -110,6 +140,22 @@ async function run() {
 
       const result = await usersCollections.insertOne(user);
       res.send(result);
+    });
+
+    //get jwt
+    app.get("/jwt", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const user = await usersCollections.findOne(query);
+
+      if (user) {
+        const token = jwt.sign({ email }, process.env.ACCESS_TOKEN_SECRET, {
+          expiresIn: "2h",
+        });
+        return res.send({ accessToken: token });
+      }
+
+      res.status(403).send({ accessToken: "" });
     });
   } finally {
   }
