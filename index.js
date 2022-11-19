@@ -157,6 +157,15 @@ async function run() {
 
       res.status(403).send({ accessToken: "" });
     });
+
+    // get all users (admin)
+    app.get("/users", async (req, res) => {
+      const query = {};
+
+      const users = await usersCollections.find(query).toArray();
+
+      res.send(users);
+    });
   } finally {
   }
 }
